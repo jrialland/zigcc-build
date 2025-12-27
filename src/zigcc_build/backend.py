@@ -108,7 +108,8 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
             "defines": tool_config.get("defines", []),
             "library_dirs": tool_config.get("library-dirs", []),
             "libraries": tool_config.get("libraries", []),
-            "module_name": tool_config.get("module-name", safe_name)
+            "module_name": tool_config.get("module-name", safe_name),
+            "packages": tool_config.get("packages", [])
         }
         
         # Run configurer script if present
@@ -189,9 +190,50 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
             if os.path.exists(output_filename):
                 os.remove(output_filename)
 
-        # 2. Add pure python sources if any (simple copy of src/ folder usually)
-        # For this example, we'll just look for a package folder with the project name
-        # or just rely on the compiled extension.
+        # 2. Add pure python sources
+        packages = build_config.get("packages", [])
+        package_dir = "."
+        
+        # Auto-discovery if no packages specified
+        if not packages:
+            if os.path.exists("src") and os.path.isdir("src"):
+                # Check if src contains packages
+                found_packages = []
+                for item in os.listdir("src"):
+                    item_path = os.path.join("src", item)
+                    if os.path.isdir(item_path) and os.path.exists(os.path.join(item_path, "__init__.py")):
+                        found_packages.append(item)
+                
+                if found_packages:
+                    package_dir = "src"
+                    packages = found_packages
+            
+            if not packages:
+                # Check current directory
+                for item in os.listdir("."):
+                    if item in [".git", ".venv", "dist", "build", "__pycache__", "zigcc_build.egg-info", "demo-project"]:
+                        continue
+                    if os.path.isdir(item) and os.path.exists(os.path.join(item, "__init__.py")):
+                        packages.append(item)
+
+        # If packages were found or specified, copy them
+        if packages:
+            print(f"Including packages from {package_dir}: {packages}")
+            for package in packages:
+                src_path = os.path.join(package_dir, package)
+                if not os.path.exists(src_path):
+                    print(f"Warning: Package {package} not found in {package_dir}")
+                    continue
+                    
+                for root, _, files in os.walk(src_path):
+                    for file in files:
+                        if file.endswith(".pyc") or file == "__pycache__":
+                            continue
+                        abs_file = os.path.join(root, file)
+                        # Calculate arcname relative to package_dir
+                        # e.g. src/mypkg/init.py -> mypkg/init.py
+                        rel_path = os.path.relpath(abs_file, package_dir)
+                        write_file_to_zip(zf, abs_file, arcname=rel_path)
         
         # 3. Write Metadata
         dist_info_dir = f"{safe_name}-{version}.dist-info"

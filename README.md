@@ -20,9 +20,17 @@ When you build your project (e.g., using `pip` or `build`), this backend:
 
 In your `pyproject.toml`, specify `zigcc-build` as the build backend.
 
+**Option A: Using from PyPI (if published)**
 ```toml
 [build-system]
 requires = ["zigcc-build"]
+build-backend = "zigcc_build.backend"
+```
+
+**Option B: Using directly from GitHub**
+```toml
+[build-system]
+requires = ["zigcc-build @ git+https://github.com/jrialland/zigcc-build.git"]
 build-backend = "zigcc_build.backend"
 ```
 
@@ -56,7 +64,19 @@ libraries = ["m", "user32"]
 
 # Optional python script to configure the build dynamically
 configurer-script = "configure.py"
+
+# List of python packages to include (optional).
+# If omitted, the backend will try to auto-discover packages in 'src/' or the root directory.
+packages = ["mypackage"]
 ```
+
+### Including Pure Python Code
+
+The backend automatically detects and includes pure Python packages.
+- If a `src` directory exists, it looks for packages inside `src`.
+- Otherwise, it looks for packages in the project root.
+
+You can also explicitly specify packages to include using the `packages` option in `[tool.zigcc-build]`.
 
 ### Dynamic Configuration
 
@@ -95,6 +115,7 @@ class ZigCcConfig(TypedDict):
     library_dirs: List[str] # List of library directories
     libraries: List[str]    # List of libraries to link against
     module_name: str        # The name of the extension module
+    packages: List[str]     # List of python packages to include
 ```
 
 ### 3. Build

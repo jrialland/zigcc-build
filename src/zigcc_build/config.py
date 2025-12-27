@@ -18,3 +18,4 @@ class ZigCcConfig(TypedDict):
     library_dirs: List[str]
     libraries: List[str]
     module_name: str
+    packages: List[str] # List of python packages to include (e.g. ["mypackage"])
