@@ -1,0 +1,18 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "zigcc-build"
+version = "0.1.0"
+description = "A PEP 517 build backend using zig cc"
+authors = [{name = "Julien"}]
+readme = "README.md"
+requires-python = ">=3.7"
+dependencies = [
+    "tomli; python_version < '3.11'",
+    "ziglang",
+]
+
+[project.entry-points."distutils.commands"]
+# Optional: if you wanted to integrate with setuptools, but we are doing a standalone backend.

@@ -1,0 +1,14 @@
+[build-system]
+requires = ["zigcc-build"]
+build-backend = "zigcc_build.backend"
+
+[project]
+name = "demo-package"
+version = "1.0.0"
+description = "A demo package built with zigcc"
+
+[tool.zigcc-build]
+module-name = "demo"
+sources = ["src/hello.c"]
+defines = ["HELLO_MACRO"]
+configurer-script = "configure.py"

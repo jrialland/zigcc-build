@@ -1,0 +1,48 @@
+name: Test Backend
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install build dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build pytest
+
+    - name: Install zigcc-build-backend
+      run: |
+        pip install .
+
+    - name: Build demo project
+      working-directory: demo-project
+      run: |
+        python -m build --no-isolation
+
+    - name: Install demo project
+      working-directory: demo-project
+      shell: bash
+      run: |
+        pip install dist/*.whl --force-reinstall
+
+    - name: Run tests
+      working-directory: demo-project
+      run: |
+        python -m pytest tests
