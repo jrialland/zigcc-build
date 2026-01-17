@@ -38,32 +38,35 @@ def get_requires_for_build_editable(config_settings=None):
 def _get_platform_info():
     """Get platform-specific information for wheel building."""
     import platform
+    from packaging import tags
     
-    # This is a simplified tag generation. Real backends use `packaging.tags`
-    if sys.implementation.name == "cpython":
-        impl = "cp"
+    # Use packaging.tags for proper platform tag generation
+    # This handles CPython, PyPy, manylinux, macOS universal2, etc.
+    tag = next(tags.sys_tags())
+    
+    # Extract components from the tag
+    impl = tag.interpreter
+    abi = tag.abi
+    plat = tag.platform
+    
+    # Extract Python version from interpreter tag (e.g., "cp311" -> "311")
+    if impl.startswith("cp"):
+        pyver = impl[2:]  # Strip "cp" prefix
+    elif impl.startswith("pp"):
+        pyver = impl[2:]  # PyPy: "pp39" -> "39"
     else:
-        impl = sys.implementation.name
-        
-    pyver = f"{sys.version_info.major}{sys.version_info.minor}"
-    abi = f"cp{pyver}" # Simplified
+        pyver = f"{sys.version_info.major}{sys.version_info.minor}"
     
-    # Detect OS and Arch for the tag
+    # Detect OS and extension suffix
     system = platform.system().lower()
-    machine = platform.machine().lower()
+    ext_suffix = sysconfig.get_config_var("EXT_SUFFIX")
     
-    if system == "windows":
-        plat = "win_amd64" if machine == "amd64" or machine == "x86_64" else "win32"
-        ext_suffix = ".pyd"
-    elif system == "linux":
-        plat = f"linux_{machine}"
-        ext_suffix = ".so"
-    elif system == "darwin":
-        plat = f"macosx_10_9_{machine}" # Simplified
-        ext_suffix = ".so"
-    else:
-        plat = "any"
-        ext_suffix = ".so"
+    if not ext_suffix:
+        # Fallback if EXT_SUFFIX is not available
+        if system == "windows":
+            ext_suffix = ".pyd"
+        else:
+            ext_suffix = ".so"
     
     return {
         "impl": impl,

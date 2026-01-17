@@ -12,6 +12,7 @@ requires-python = ">=3.7"
 dependencies = [
     "tomli; python_version < '3.11'",
     "ziglang",
+    "packaging",
 ]
 
 [project.entry-points."distutils.commands"]
