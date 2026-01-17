@@ -5,9 +5,11 @@ import tarfile
 import zipfile
 import sysconfig
 import importlib.util
-
 import hashlib
 import base64
+import platform
+
+from packaging import tags
 
 from .config import ZigCcConfig
 
@@ -37,9 +39,6 @@ def get_requires_for_build_editable(config_settings=None):
 
 def _get_platform_info():
     """Get platform-specific information for wheel building."""
-    import platform
-    from packaging import tags
-    
     # Use packaging.tags for proper platform tag generation
     # This handles CPython, PyPy, manylinux, macOS universal2, etc.
     tag = next(tags.sys_tags())
