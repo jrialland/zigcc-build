@@ -13,9 +13,7 @@ import platform
 from typing import List, TypedDict
 from packaging import tags
 
-from .config import ZigCcConfig
-
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 class ZigCcConfig(TypedDict):
@@ -264,7 +262,7 @@ def _build_wheel_impl(
     abi = platform_info["abi"]
     plat = platform_info["plat"]
 
-    wheel_filename = f"{safe_name}-{version}-{impl}{pyver}-{abi}-{plat}.whl"
+    wheel_filename = f"{safe_name}-{version}-{impl}-{abi}-{plat}.whl"
     wheel_path = os.path.join(wheel_directory, wheel_filename)
 
     print(f"Building {'editable ' if editable else ''}wheel: {wheel_path}")
@@ -350,7 +348,7 @@ Summary: {project_config.get('description', '')}
         wheel_content = f"""Wheel-Version: 1.0
 Generator: zigcc-build-backend
 Root-Is-Purelib: false
-Tag: {impl}{pyver}-{abi}-{plat}
+Tag: {impl}-{abi}-{plat}
 """
         write_str_to_zip(zf, f"{dist_info_dir}/WHEEL", wheel_content)
 
