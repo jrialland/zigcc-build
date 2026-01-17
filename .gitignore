@@ -143,3 +143,13 @@ cython_debug/
 env/
 venv/
 ENV/
+
+# library files
+*.lib
+*.pdb
+*.dll
+*.so*
+*.dylib
+*.a
+*.la
+*.obj
