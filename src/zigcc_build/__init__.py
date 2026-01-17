@@ -13,7 +13,7 @@ import platform
 from typing import List, TypedDict
 from packaging import tags
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 
 class ZigCcConfig(TypedDict):
