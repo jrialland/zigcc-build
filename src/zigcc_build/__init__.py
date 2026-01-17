@@ -213,6 +213,13 @@ def _compile_extension(build_config, platform_info):
                 # Link to Python framework
                 framework_path = sysconfig.get_config_var("PYTHONFRAMEWORK")
                 if framework_path:
+                    # Add framework search path (e.g., /Library/Frameworks)
+                    py_prefix = sysconfig.get_config_var("prefix")
+                    if py_prefix and "Python.framework" in py_prefix:
+                        # Extract framework base directory
+                        # e.g., /Library/Frameworks/Python.framework/Versions/3.12 -> /Library/Frameworks
+                        framework_base = py_prefix.split("Python.framework")[0].rstrip("/")
+                        cmd.extend([f"-F{framework_base}"])
                     cmd.extend(["-framework", "Python"])
 
     print(f"Running: {' '.join(cmd)}")
