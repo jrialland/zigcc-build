@@ -13,7 +13,7 @@ import platform
 from typing import List, TypedDict
 from packaging import tags
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 
 
 class ZigCcConfig(TypedDict):
@@ -501,8 +501,9 @@ def build_sdist(sdist_directory, config_settings=None):
     project_config = config.get("project", {})
     name = project_config.get("name", "unknown")
     version = project_config.get("version", "0.0.0")
+    safe_name = name.replace("-", "_")
 
-    sdist_filename = f"{name}-{version}.tar.gz"
+    sdist_filename = f"{safe_name}-{version}.tar.gz"
     sdist_path = os.path.join(sdist_directory, sdist_filename)
 
     # Create PKG-INFO content
@@ -512,7 +513,7 @@ def build_sdist(sdist_directory, config_settings=None):
         # Add PKG-INFO file first
         import io
         pkg_info_bytes = pkg_info_content.encode("utf-8")
-        pkg_info_tarinfo = tarfile.TarInfo(name=f"{name}-{version}/PKG-INFO")
+        pkg_info_tarinfo = tarfile.TarInfo(name=f"{safe_name}-{version}/PKG-INFO")
         pkg_info_tarinfo.size = len(pkg_info_bytes)
         pkg_info_tarinfo.mode = 0o644
         tf.addfile(pkg_info_tarinfo, io.BytesIO(pkg_info_bytes))
@@ -535,7 +536,7 @@ def build_sdist(sdist_directory, config_settings=None):
                 # Skip compiled files and cache
                 if file.endswith((".pyc", ".pyo", ".pyd", ".so", ".pdb")):
                     continue
-                arcname = f"{name}-{version}/{os.path.relpath(file_path, '.')}"
+                arcname = f"{safe_name}-{version}/{os.path.relpath(file_path, '.')}"
                 tf.add(file_path, arcname=arcname)
 
     return sdist_filename

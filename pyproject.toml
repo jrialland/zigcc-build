@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "zigcc-build"
-version = "0.2.2"
+version = "0.2.3"
 description = "A PEP 517 build backend using zig cc"
 authors = [{name = "Julien Rialland", email = "julien.rialland@gmail.com"}]
 readme = "README.md"
