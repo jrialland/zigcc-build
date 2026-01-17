@@ -195,6 +195,25 @@ def _compile_extension(build_config, platform_info):
         libs_dir = os.path.join(base, "libs")
         if os.path.exists(libs_dir):
             cmd.extend([f"-L{libs_dir}", f"-lpython{pyver}"])
+    
+    # On macOS, explicitly link to the Python library
+    elif system == "darwin":
+        # Get the Python library path
+        py_lib_dir = sysconfig.get_config_var("LIBDIR")
+        if py_lib_dir:
+            cmd.extend([f"-L{py_lib_dir}"])
+        
+        # Link to the Python framework or library
+        python_ldlibrary = sysconfig.get_config_var("LDLIBRARY")
+        if python_ldlibrary:
+            if python_ldlibrary.endswith(".dylib"):
+                # Link to libpythonX.Y.dylib
+                cmd.append(f"-lpython{sys.version_info.major}.{sys.version_info.minor}")
+            else:
+                # Link to Python framework
+                framework_path = sysconfig.get_config_var("PYTHONFRAMEWORK")
+                if framework_path:
+                    cmd.extend(["-framework", "Python"])
 
     print(f"Running: {' '.join(cmd)}")
     subprocess.check_call(cmd)
