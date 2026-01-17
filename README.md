@@ -130,6 +130,65 @@ pip install -e .
 python -m build
 ```
 
+## PEP 621 Metadata Support
+
+The `zigcc-build` backend fully supports PEP 621 metadata fields defined in your `pyproject.toml`. All metadata is automatically included in the generated wheel's `METADATA` file and the source distribution's `PKG-INFO` file.
+
+### Supported Metadata Fields
+
+- **name** - Package name
+- **version** - Package version
+- **description** - Short one-line summary
+- **readme** - Long description from README file (supports `.md`, `.rst`, `.txt`)
+- **requires-python** - Python version requirements
+- **license** - License information (text or file)
+- **authors** - List of authors with name and email
+- **maintainers** - List of maintainers with name and email
+- **keywords** - List of keywords for PyPI
+- **classifiers** - List of PyPI classifiers
+- **urls** - Project URLs (Homepage, Repository, Issues, etc.)
+- **dependencies** - Runtime dependencies
+- **optional-dependencies** - Optional dependency groups
+
+### Example with Full Metadata
+
+```toml
+[build-system]
+requires = ["zigcc-build"]
+build-backend = "zigcc_build"
+
+[project]
+name = "my-package"
+version = "1.0.0"
+description = "A package with C extensions"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Your Name", email = "you@example.com"}
+]
+keywords = ["c-extension", "zig", "compiler"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy>=1.20",
+]
+
+[project.urls]
+Homepage = "https://github.com/user/my-package"
+Repository = "https://github.com/user/my-package"
+Issues = "https://github.com/user/my-package/issues"
+
+[tool.zigcc-build]
+module-name = "my_extension"
+sources = ["src/extension.c"]
+```
+
+The backend will automatically generate complete `METADATA` and `PKG-INFO` files with all this information, ensuring your packages are fully compliant with PyPI requirements.
+
 ## Example `pyproject.toml`
 
 Here is a complete example for a project named `demo-package`:

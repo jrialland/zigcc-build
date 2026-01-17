@@ -6,6 +6,23 @@ build-backend = "zigcc_build"
 name = "demo-package"
 version = "1.0.0"
 description = "A demo package built with zigcc"
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "MIT"}
+authors = [
+    {name = "Demo Author", email = "demo@example.com"}
+]
+keywords = ["demo", "zigcc", "c-extension"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+]
+
+[project.urls]
+Homepage = "https://github.com/jrialland/zigcc-build"
+Repository = "https://github.com/jrialland/zigcc-build"
 
 [tool.zigcc-build]
 module-name = "demo"

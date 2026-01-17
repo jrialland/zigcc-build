@@ -249,6 +249,127 @@ def _discover_packages(build_config):
     return packages, package_dir
 
 
+def _generate_metadata(project_config):
+    """Generate PKG-INFO/METADATA content from PEP 621 project config."""
+    lines = []
+    
+    # Required fields
+    lines.append("Metadata-Version: 2.1")
+    lines.append(f"Name: {project_config.get('name', 'unknown')}")
+    lines.append(f"Version: {project_config.get('version', '0.0.0')}")
+    
+    # Summary/Description (single line)
+    description = project_config.get("description", "")
+    if description:
+        lines.append(f"Summary: {description}")
+    
+    # Home-page (deprecated but still used)
+    urls = project_config.get("urls", {})
+    if "Homepage" in urls:
+        lines.append(f"Home-page: {urls['Homepage']}")
+    
+    # Author and Author-Email
+    authors = project_config.get("authors", [])
+    if authors:
+        author_names = [a.get("name", "") for a in authors if "name" in a]
+        author_emails = [a.get("email", "") for a in authors if "email" in a]
+        
+        if author_names:
+            lines.append(f"Author: {', '.join(author_names)}")
+        if author_emails:
+            lines.append(f"Author-Email: {', '.join(author_emails)}")
+    
+    # Maintainer and Maintainer-Email
+    maintainers = project_config.get("maintainers", [])
+    if maintainers:
+        maintainer_names = [m.get("name", "") for m in maintainers if "name" in m]
+        maintainer_emails = [m.get("email", "") for m in maintainers if "email" in m]
+        
+        if maintainer_names:
+            lines.append(f"Maintainer: {', '.join(maintainer_names)}")
+        if maintainer_emails:
+            lines.append(f"Maintainer-Email: {', '.join(maintainer_emails)}")
+    
+    # License
+    license_info = project_config.get("license", {})
+    if isinstance(license_info, dict):
+        if "text" in license_info:
+            lines.append(f"License: {license_info['text']}")
+        elif "file" in license_info:
+            # Read license from file
+            try:
+                with open(license_info["file"], "r", encoding="utf-8") as f:
+                    license_text = f.read().strip()
+                    lines.append(f"License: {license_text}")
+            except Exception:
+                pass
+    elif isinstance(license_info, str):
+        lines.append(f"License: {license_info}")
+    
+    # Project-URL (for additional URLs)
+    for name, url in urls.items():
+        if name != "Homepage":  # Already added as Home-page
+            lines.append(f"Project-URL: {name}, {url}")
+    
+    # Keywords
+    keywords = project_config.get("keywords", [])
+    if keywords:
+        if isinstance(keywords, list):
+            lines.append(f"Keywords: {','.join(keywords)}")
+        else:
+            lines.append(f"Keywords: {keywords}")
+    
+    # Classifiers
+    classifiers = project_config.get("classifiers", [])
+    for classifier in classifiers:
+        lines.append(f"Classifier: {classifier}")
+    
+    # Requires-Python
+    requires_python = project_config.get("requires-python")
+    if requires_python:
+        lines.append(f"Requires-Python: {requires_python}")
+    
+    # Dependencies (Requires-Dist)
+    dependencies = project_config.get("dependencies", [])
+    for dep in dependencies:
+        lines.append(f"Requires-Dist: {dep}")
+    
+    # Optional dependencies
+    optional_deps = project_config.get("optional-dependencies", {})
+    for extra_name, extra_deps in optional_deps.items():
+        lines.append(f"Provides-Extra: {extra_name}")
+        for dep in extra_deps:
+            lines.append(f"Requires-Dist: {dep}; extra == '{extra_name}'")
+    
+    # Description-Content-Type and Description (long description from readme)
+    readme = project_config.get("readme")
+    if readme:
+        readme_path = None
+        content_type = "text/plain"
+        
+        if isinstance(readme, str):
+            readme_path = readme
+            # Infer content type from extension
+            if readme.endswith(".md"):
+                content_type = "text/markdown"
+            elif readme.endswith(".rst"):
+                content_type = "text/x-rst"
+        elif isinstance(readme, dict):
+            readme_path = readme.get("file")
+            content_type = readme.get("content-type", content_type)
+        
+        if readme_path and os.path.exists(readme_path):
+            lines.append(f"Description-Content-Type: {content_type}")
+            lines.append("")  # Blank line before description body
+            try:
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    lines.append(f.read())
+            except Exception:
+                pass
+    
+    return "\n".join(lines) + "\n"
+
+
 def _build_wheel_impl(
     wheel_directory, config_settings=None, metadata_directory=None, editable=False
 ):
@@ -341,12 +462,8 @@ def _build_wheel_impl(
         # 3. Write Metadata
         dist_info_dir = f"{safe_name}-{version}.dist-info"
 
-        # METADATA
-        metadata_content = f"""Metadata-Version: 2.1
-Name: {name}
-Version: {version}
-Summary: {project_config.get('description', '')}
-"""
+        # METADATA - Generate full PEP 621 compliant metadata
+        metadata_content = _generate_metadata(project_config)
         write_str_to_zip(zf, f"{dist_info_dir}/METADATA", metadata_content)
 
         # WHEEL
@@ -388,9 +505,19 @@ def build_sdist(sdist_directory, config_settings=None):
     sdist_filename = f"{name}-{version}.tar.gz"
     sdist_path = os.path.join(sdist_directory, sdist_filename)
 
+    # Create PKG-INFO content
+    pkg_info_content = _generate_metadata(project_config)
+
     with tarfile.open(sdist_path, "w:gz") as tf:
+        # Add PKG-INFO file first
+        import io
+        pkg_info_bytes = pkg_info_content.encode("utf-8")
+        pkg_info_tarinfo = tarfile.TarInfo(name=f"{name}-{version}/PKG-INFO")
+        pkg_info_tarinfo.size = len(pkg_info_bytes)
+        pkg_info_tarinfo.mode = 0o644
+        tf.addfile(pkg_info_tarinfo, io.BytesIO(pkg_info_bytes))
+        
         # Add all files in current directory recursively, excluding venv/git etc.
-        # Simplified: just add everything in current dir
         for root, dirs, files in os.walk("."):
             if ".git" in dirs:
                 dirs.remove(".git")
@@ -398,9 +525,16 @@ def build_sdist(sdist_directory, config_settings=None):
                 dirs.remove("__pycache__")
             if "dist" in dirs:
                 dirs.remove("dist")
+            if ".venv" in dirs:
+                dirs.remove(".venv")
+            if "build" in dirs:
+                dirs.remove("build")
 
             for file in files:
                 file_path = os.path.join(root, file)
+                # Skip compiled files and cache
+                if file.endswith((".pyc", ".pyo", ".pyd", ".so", ".pdb")):
+                    continue
                 arcname = f"{name}-{version}/{os.path.relpath(file_path, '.')}"
                 tf.add(file_path, arcname=arcname)
 
