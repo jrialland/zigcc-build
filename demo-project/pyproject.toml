@@ -1,6 +1,6 @@
 [build-system]
 requires = ["zigcc-build"]
-build-backend = "zigcc_build.backend"
+build-backend = "zigcc_build"
 
 [project]
 name = "demo-package"

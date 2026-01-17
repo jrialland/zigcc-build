@@ -24,14 +24,14 @@ In your `pyproject.toml`, specify `zigcc-build` as the build backend.
 ```toml
 [build-system]
 requires = ["zigcc-build"]
-build-backend = "zigcc_build.backend"
+build-backend = "zigcc_build"
 ```
 
 **Option B: Using directly from GitHub**
 ```toml
 [build-system]
 requires = ["zigcc-build @ git+https://github.com/jrialland/zigcc-build.git"]
-build-backend = "zigcc_build.backend"
+build-backend = "zigcc_build"
 ```
 
 ### 2. Configure `[tool.zigcc-build]`
@@ -137,7 +137,7 @@ Here is a complete example for a project named `demo-package`:
 ```toml
 [build-system]
 requires = ["zigcc-build"]
-build-backend = "zigcc_build.backend"
+build-backend = "zigcc_build"
 
 [project]
 name = "demo-package"
