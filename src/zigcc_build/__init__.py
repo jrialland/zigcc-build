@@ -13,7 +13,7 @@ import platform
 from typing import List, TypedDict
 from packaging import tags
 
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 
 class ZigCcConfig(TypedDict):
@@ -423,8 +423,19 @@ def _build_wheel_impl(
 
         output_filename = _compile_extension(build_config, platform_info)
         if output_filename:
+            # Calculate correct arcname for dotted module names
+            module_name = build_config["module_name"]
+            if "." in module_name:
+                ext_suffix = platform_info["ext_suffix"]
+                # Replace dots with slashes for the directory structure
+                # And ensure we append the suffix correctly
+                target_path = module_name.replace(".", "/") + ext_suffix
+                arcname = target_path
+            else:
+                arcname = output_filename
+
             # Add the compiled extension to the wheel
-            write_file_to_zip(zf, output_filename, arcname=output_filename)
+            write_file_to_zip(zf, output_filename, arcname=arcname)
 
             # Cleanup artifact
             if os.path.exists(output_filename):
