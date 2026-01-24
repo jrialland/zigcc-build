@@ -24,14 +24,16 @@ class ZigCcConfig(TypedDict):
         sources: List of source files to compile (e.g. ["src/main.c"]).
         include_dirs: List of include directories (e.g. ["include"]).
         defines: List of compiler macros (e.g. ["DEBUG", "VERSION=1"]).
-        library_dirs: List of library directories (e.g. ["libs"]).
-        libraries: List of libraries to link against (e.g. ["m", "user32"]).
-        module_name: The name of the extension module to generate.
+    cflags: List of compiler flags (e.g. ["-O3", "-Wall"]).
+    library_dirs: List of library directories (e.g. ["libs"]).
+    libraries: List of libraries to link against (e.g. ["m", "user32"]).
+    module_name: The name of the extension module to generate.
     """
 
     sources: List[str]
     include_dirs: List[str]
     defines: List[str]
+    cflags: List[str]
     library_dirs: List[str]
     libraries: List[str]
     module_name: str
@@ -113,6 +115,7 @@ def _prepare_build_config(tool_config, safe_name):
         "sources": tool_config.get("sources", []),
         "include_dirs": tool_config.get("include-dirs", []),
         "defines": tool_config.get("defines", []),
+        "cflags": tool_config.get("cflags", []),
         "library_dirs": tool_config.get("library-dirs", []),
         "libraries": tool_config.get("libraries", []),
         "module_name": tool_config.get("module-name", safe_name),
@@ -151,6 +154,7 @@ def _compile_extension(build_config, platform_info):
 
     include_dirs = build_config["include_dirs"]
     defines = build_config["defines"]
+    cflags = build_config["cflags"]
     library_dirs = build_config["library_dirs"]
     libraries = build_config["libraries"]
     ext_name = build_config["module_name"]
@@ -179,6 +183,9 @@ def _compile_extension(build_config, platform_info):
     # Add macros/defines
     for define in defines:
         cmd.extend([f"-D{define}"])
+
+    # Add cflags
+    cmd.extend(cflags)
 
     # Add sources
     cmd.extend(sources)
