@@ -24,6 +24,9 @@ classifiers = [
 Homepage = "https://github.com/jrialland/zigcc-build"
 Repository = "https://github.com/jrialland/zigcc-build"
 
+[project.scripts]
+demo-hello = "demo_package.main:main"
+
 [tool.zigcc-build]
 module-name = "demo"
 sources = ["src/hello.c"]
