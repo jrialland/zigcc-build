@@ -202,7 +202,7 @@ def _compile_extension(build_config, platform_info):
         libs_dir = os.path.join(base, "libs")
         if os.path.exists(libs_dir):
             cmd.extend([f"-L{libs_dir}", f"-lpython{pyver}"])
-    
+
     # On macOS, use undefined dynamic lookup for Python symbols
     # They will be resolved at runtime when the module is imported
     elif system == "darwin":
@@ -259,44 +259,44 @@ def _discover_packages(build_config):
 def _generate_metadata(project_config):
     """Generate PKG-INFO/METADATA content from PEP 621 project config."""
     lines = []
-    
+
     # Required fields
     lines.append("Metadata-Version: 2.1")
     lines.append(f"Name: {project_config.get('name', 'unknown')}")
     lines.append(f"Version: {project_config.get('version', '0.0.0')}")
-    
+
     # Summary/Description (single line)
     description = project_config.get("description", "")
     if description:
         lines.append(f"Summary: {description}")
-    
+
     # Home-page (deprecated but still used)
     urls = project_config.get("urls", {})
     if "Homepage" in urls:
         lines.append(f"Home-page: {urls['Homepage']}")
-    
+
     # Author and Author-Email
     authors = project_config.get("authors", [])
     if authors:
         author_names = [a.get("name", "") for a in authors if "name" in a]
         author_emails = [a.get("email", "") for a in authors if "email" in a]
-        
+
         if author_names:
             lines.append(f"Author: {', '.join(author_names)}")
         if author_emails:
             lines.append(f"Author-Email: {', '.join(author_emails)}")
-    
+
     # Maintainer and Maintainer-Email
     maintainers = project_config.get("maintainers", [])
     if maintainers:
         maintainer_names = [m.get("name", "") for m in maintainers if "name" in m]
         maintainer_emails = [m.get("email", "") for m in maintainers if "email" in m]
-        
+
         if maintainer_names:
             lines.append(f"Maintainer: {', '.join(maintainer_names)}")
         if maintainer_emails:
             lines.append(f"Maintainer-Email: {', '.join(maintainer_emails)}")
-    
+
     # License
     license_info = project_config.get("license", {})
     if isinstance(license_info, dict):
@@ -312,12 +312,12 @@ def _generate_metadata(project_config):
                 pass
     elif isinstance(license_info, str):
         lines.append(f"License: {license_info}")
-    
+
     # Project-URL (for additional URLs)
     for name, url in urls.items():
         if name != "Homepage":  # Already added as Home-page
             lines.append(f"Project-URL: {name}, {url}")
-    
+
     # Keywords
     keywords = project_config.get("keywords", [])
     if keywords:
@@ -325,35 +325,35 @@ def _generate_metadata(project_config):
             lines.append(f"Keywords: {','.join(keywords)}")
         else:
             lines.append(f"Keywords: {keywords}")
-    
+
     # Classifiers
     classifiers = project_config.get("classifiers", [])
     for classifier in classifiers:
         lines.append(f"Classifier: {classifier}")
-    
+
     # Requires-Python
     requires_python = project_config.get("requires-python")
     if requires_python:
         lines.append(f"Requires-Python: {requires_python}")
-    
+
     # Dependencies (Requires-Dist)
     dependencies = project_config.get("dependencies", [])
     for dep in dependencies:
         lines.append(f"Requires-Dist: {dep}")
-    
+
     # Optional dependencies
     optional_deps = project_config.get("optional-dependencies", {})
     for extra_name, extra_deps in optional_deps.items():
         lines.append(f"Provides-Extra: {extra_name}")
         for dep in extra_deps:
             lines.append(f"Requires-Dist: {dep}; extra == '{extra_name}'")
-    
+
     # Description-Content-Type and Description (long description from readme)
     readme = project_config.get("readme")
     if readme:
         readme_path = None
         content_type = "text/plain"
-        
+
         if isinstance(readme, str):
             readme_path = readme
             # Infer content type from extension
@@ -364,7 +364,7 @@ def _generate_metadata(project_config):
         elif isinstance(readme, dict):
             readme_path = readme.get("file")
             content_type = readme.get("content-type", content_type)
-        
+
         if readme_path and os.path.exists(readme_path):
             lines.append(f"Description-Content-Type: {content_type}")
             lines.append("")  # Blank line before description body
@@ -373,8 +373,58 @@ def _generate_metadata(project_config):
                     lines.append(f.read())
             except Exception:
                 pass
-    
+
     return "\n".join(lines) + "\n"
+
+
+def _generate_entry_points(project_config):
+    """Generate entry_points.txt content from [project.scripts] and [project.gui-scripts]."""
+    lines = []
+
+    # Console scripts
+    scripts = project_config.get("scripts", {})
+    if scripts:
+        lines.append("[console_scripts]")
+        for name, entry_point in scripts.items():
+            lines.append(f"{name} = {entry_point}")
+        lines.append("")
+
+    # GUI scripts
+    gui_scripts = project_config.get("gui-scripts", {})
+    if gui_scripts:
+        lines.append("[gui_scripts]")
+        for name, entry_point in gui_scripts.items():
+            lines.append(f"{name} = {entry_point}")
+        lines.append("")
+
+    return "\n".join(lines) if lines else ""
+
+
+def _generate_console_script(entry_point):
+    """Generate a cross-platform console script wrapper."""
+    module, func = entry_point.split(":", 1)
+
+    if sys.platform == "win32":
+        # Windows: pip creates .exe launchers, we provide the script
+        return f"""# -*- coding: utf-8 -*-
+import re
+import sys
+from {module} import {func}
+if __name__ == "__main__":
+    sys.argv[0] = re.sub(r"(-script\\.pyw|\\.exe)?$", "", sys.argv[0])
+    sys.exit({func}())
+"""
+    else:
+        # Unix: shebang script
+        return f"""#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+import re
+import sys
+from {module} import {func}
+if __name__ == "__main__":
+    sys.argv[0] = re.sub(r"(-script\\.pyw|\\.exe)?$", "", sys.argv[0])
+    sys.exit({func}())
+"""
 
 
 def _build_wheel_impl(
@@ -492,6 +542,26 @@ Tag: {impl}-{abi}-{plat}
 """
         write_str_to_zip(zf, f"{dist_info_dir}/WHEEL", wheel_content)
 
+        # 4. Write entry_points.txt and generate console scripts
+        entry_points_content = _generate_entry_points(project_config)
+        if entry_points_content:
+            write_str_to_zip(
+                zf, f"{dist_info_dir}/entry_points.txt", entry_points_content
+            )
+
+            # Generate wrapper scripts in {package}-{version}.data/scripts/
+            scripts = project_config.get("scripts", {})
+            gui_scripts = project_config.get("gui-scripts", {})
+            data_scripts_dir = f"{safe_name}-{version}.data/scripts"
+
+            all_scripts = {**scripts, **gui_scripts}
+            for name, entry_point in all_scripts.items():
+                wrapper = _generate_console_script(entry_point)
+                # On Windows, scripts need .py extension for pip to handle them
+                script_name = f"{name}.py" if sys.platform == "win32" else name
+                arcname = f"{data_scripts_dir}/{script_name}"
+                write_str_to_zip(zf, arcname, wrapper)
+
         # RECORD
         record_rows.append(f"{dist_info_dir}/RECORD,,")
         record_content = "\n".join(record_rows) + "\n"
@@ -530,12 +600,13 @@ def build_sdist(sdist_directory, config_settings=None):
     with tarfile.open(sdist_path, "w:gz") as tf:
         # Add PKG-INFO file first
         import io
+
         pkg_info_bytes = pkg_info_content.encode("utf-8")
         pkg_info_tarinfo = tarfile.TarInfo(name=f"{safe_name}-{version}/PKG-INFO")
         pkg_info_tarinfo.size = len(pkg_info_bytes)
         pkg_info_tarinfo.mode = 0o644
         tf.addfile(pkg_info_tarinfo, io.BytesIO(pkg_info_bytes))
-        
+
         # Add all files in current directory recursively, excluding venv/git etc.
         for root, dirs, files in os.walk("."):
             if ".git" in dirs:
